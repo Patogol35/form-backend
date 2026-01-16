@@ -1,21 +1,29 @@
-from rest_framework.decorators import api_view, parser_classes
+import json
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 from django.core.mail import send_mail
 from django.conf import settings
 
 @api_view(["POST"])
-@parser_classes([JSONParser, FormParser, MultiPartParser])
 def contact_view(request):
-    name = request.data.get("from_name")
-    email = request.data.get("from_email")
-    message = request.data.get("message")
+    data = request.data
+
+    # 🔥 Fallback si DRF no parsea el JSON
+    if not data:
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except Exception:
+            data = {}
+
+    name = data.get("from_name")
+    email = data.get("from_email")
+    message = data.get("message")
 
     if not name or not email or not message:
         return Response(
             {
                 "error": "Todos los campos son obligatorios",
-                "debug": request.data
+                "debug": data
             },
             status=400
         )
